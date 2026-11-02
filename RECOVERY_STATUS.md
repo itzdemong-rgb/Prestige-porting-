@@ -91,3 +91,14 @@ No release JAR was produced. The current source set remains incomplete and is no
 
 ## Current decision
 Do not package or publish a placeholder JAR. Continue only with a matching legitimate original client JAR or complete class directory; do not execute the uploaded offline loader or reuse its embedded opaque download payload.
+
+
+## Follow-up recovery triage (2026-11-02)
+
+The local Gradle failure was checked against the official Fabric Maven index and Fabric Loom documentation. The plugin ID `net.fabricmc.fabric-loom-remap` is the correct remapping plugin for Minecraft 1.21.11 and earlier, and version `1.17.13` is published. Therefore, the observed failure is dependency resolution in the current build environment, not evidence that the selected Loom version or plugin ID is invalid.
+
+The local scaffold confirms that the recovered source tree is heavily obfuscated/decompiler-generated. The 356 affected source files collectively contain thousands of calls into missing helper methods, including `methodType`, `handle`, `rethrow`, `asBoolean`, `fieldName`, and `methodName`. The supplied TSVs contain class/member recovery metadata but do not by themselves prove all runtime lookup/decryption semantics. Implementing helpers with guessed/default return values would not be a valid recovery.
+
+The current safe next path is bytecode-backed reconstruction of the missing helpers and damaged renderlib methods, followed by restoring a verified Fabric entrypoint/mixin set. The uploaded offline-loader JAR is not used as a substitute and must remain unexecuted.
+
+No new JAR was produced by this triage. No source stubs or fake client artifact were added.
