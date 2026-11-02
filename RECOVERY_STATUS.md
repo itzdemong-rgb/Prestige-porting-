@@ -75,3 +75,19 @@ Bundled CA certificate subject/issuer: `CN=mitmproxy, O=mitmproxy`, self-signed,
 Security note: these are high-risk behaviours established by static code/constant-pool inspection, not a complete malware verdict. Nothing was executed, no certificate was installed, and no network request was made.
 
 Audit report generated locally: `PRESTIGE_JAR_STATIC_AUDIT.txt` (the full report is available in the ChatGPT conversation). The actual matching client JAR or compiled client classes are still required for bytecode-backed source recovery.
+
+
+## Follow-up: uploaded PrestigeClient.jar audit (2026-11-02)
+The user uploaded `PrestigeClient.jar` (SHA-256: `ee3bfa3a0cdc83e57afc4c08470d5ea97257ef5b7c3d04184b407b1fab15fa15`). Static inspection found:
+- Fabric metadata identifies it as `prestige4`, version `4.0`, description `offline loader`, entrypoint `dev.prestige4.PrestigeMod`; it is not the expected original binary for the recovered 542-source tree.
+- Contains `prestige_offline.dll`, a PEM mitmproxy CA, a PKCS#12 server certificate/private-key bundle, and 100 captured API replay files.
+- Class bytecode references Windows Root certificate installation, Java cacerts import, hosts-file modification for `api.prestigeclient.vip`, local listeners on 127.0.0.1, elevated logon scheduled-task creation, and JNA remote-process injection APIs.
+- Captured `modDownloadNew` response is an opaque 18,143,072-byte payload, not a directly readable JAR. No decryption/authentication bypass was attempted; no loader/DLL was executed and no certificates were installed.
+- This upload cannot supply the missing `SourceSupport` / `RecoveryNames` implementation or repair the recovered renderlib source.
+
+## Build attempt (2026-11-02)
+Ran the local Gradle 9.5.1 `build` task against the recovery scaffold. It failed during plugin resolution at `build.gradle:2`: Fabric Loom plugin `net.fabricmc.fabric-loom-remap:1.17.13` could not be resolved from the configured repositories in this environment. Java compilation did not start in this attempt. A previous compile attempt on the recovered sources produced 100+ syntax/structure errors in addition to the missing recovery helpers.
+No release JAR was produced. The current source set remains incomplete and is not buildable as a working client without the matching original compiled Prestige client binary/source and repair of the decompiler-damaged files.
+
+## Current decision
+Do not package or publish a placeholder JAR. Continue only with a matching legitimate original client JAR or complete class directory; do not execute the uploaded offline loader or reuse its embedded opaque download payload.
