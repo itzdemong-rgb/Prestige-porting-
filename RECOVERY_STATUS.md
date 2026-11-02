@@ -36,3 +36,19 @@ The highest-value missing input is the exact original Prestige client JAR that t
 
 ## Build integrity
 No working JAR has been produced. No placeholder/stub JAR has been generated or presented as a completed client.
+
+
+## Newly supplied binary: `PrestigeClient.jar` (2026-11-02)
+The uploaded file was inspected statically only; it was not executed or loaded. SHA-256:
+`ee3bfa3a0cdc83e57afc4c08470d5ea97257ef5b7c3d04184b407b1fab15fa15`
+
+This file is **not** the missing original compiled Prestige client binary needed for the current source recovery:
+- Fabric metadata identifies it as `prestige4`, version `4.0`, name `Prestige Client 4.0`, description `offline loader`, with entrypoint `dev.prestige4.PrestigeMod`.
+- It contains 342 class files, primarily `dev/prestige4` loader/server classes plus bundled JNA/Gson libraries; it does not contain the expected recovered Prestige client class tree.
+- It bundles `prestige_offline.dll`, a mitmproxy CA certificate, a PKCS#12 server certificate/private-key container, replay captures, and API response data.
+- Static class-string inspection shows code paths that install a CA into Windows Root and Java cacerts, modify the Windows hosts file for `api.prestigeclient.vip`, start local listeners, create a highest-privilege logon scheduled task, and use JNA/kernel32 remote-process injection APIs.
+- The replay archive contains an 18,143,072-byte captured `prestige.jar` download response, but its body is not directly ZIP/JAR-readable and appears encoded/encrypted. This is not a verified usable source or build input.
+
+**Security handling:** do not install this JAR, its certificate, or its DLL; do not run it on a normal machine. No payload was executed. The bundled certificate/private-key and process-injection functionality make this a high-risk loader package. These observations are static-analysis findings, not a complete malware verdict.
+
+**Recovery impact:** this upload does not resolve the missing `SourceSupport` / `RecoveryNames` implementations or the eight damaged renderlib files. It is not used as a replacement source. The previously supplied six archives remain the only source inputs currently accepted for the recovery branch.
