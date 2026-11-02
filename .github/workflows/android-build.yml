@@ -1,0 +1,76 @@
+name: Prestige Android Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle 9.5.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.1'
+
+      - name: Extract supplied source archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-input
+          shopt -s nullglob
+          archives=(source/*.zip)
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "::error::No source ZIPs found. Upload the six supplied archives into the source/ directory first."
+            exit 1
+          fi
+          for archive in "${archives[@]}"; do
+            echo "Extracting $archive"
+            unzip -oq "$archive" -d build-input
+          done
+
+      - name: Locate Gradle project
+        id: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t builds < <(find build-input -type f \( -name build.gradle -o -name build.gradle.kts \) -print)
+          if [ "${#builds[@]}" -eq 0 ]; then
+            echo "::error::The uploaded source parts do not contain build.gradle or build.gradle.kts. A complete Fabric project definition is required before a JAR can be built."
+            exit 1
+          fi
+          project_dir="$(dirname "${builds[0]}")"
+          echo "dir=$project_dir" >> "$GITHUB_OUTPUT"
+          echo "Using Gradle project at $project_dir"
+
+      - name: Verify Fabric metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find build-input -type f -name fabric.mod.json -print -quit | grep -q .; then
+            echo "::error::fabric.mod.json was not found in the supplied source. Fabric mod metadata/entrypoint must be restored."
+            exit 1
+          fi
+
+      - name: Build
+        working-directory: ${{ steps.project.outputs.dir }}
+        run: gradle --no-daemon clean build
+
+      - name: Upload JAR artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prestige-client-jar
+          path: |
+            build-input/**/build/libs/*.jar
+          if-no-files-found: error
