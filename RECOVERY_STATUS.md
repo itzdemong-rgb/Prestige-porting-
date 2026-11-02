@@ -16,18 +16,23 @@ GitHub Actions run: https://github.com/itzdemong-rgb/Prestige-porting-/actions/r
 
 Java 21 and Gradle 9.5.1 setup succeeded, and all six archives extracted successfully. The build stopped at project discovery because the archives do not contain `build.gradle` or `build.gradle.kts`. Java compilation did not start.
 
-## Known source blockers from local source inspection
-- 542 recovered Java source files are present in the working recovery set.
-- Eight renderlib files contain structural/syntax corruption from source recovery.
-- Many recovered classes call missing `dev.prestige.recovery.SourceSupport` and `RecoveryNames` helpers.
-- The supplied archives do not include a complete Fabric project definition, mod entrypoint, or required Fabric metadata/mixin configuration.
+## Local source audit
+- 542 recovered Java source files are present.
+- 356 source files reference missing recovery helpers `dev.prestige.recovery.SourceSupport` and/or `RecoveryNames`.
+- The recovered code contains 3,225 `SourceSupport.methodType` references, 2,318 `rethrow` references, 1,090 `handle` references, 1,049 `asBoolean` references, and 698 each of `RecoveryNames.methodName` and `fieldName`.
+- Eight renderlib files have syntax/structure corruption: `RenderCommandBatcher.java`, `GlTextureParameterUtil.java`, `TextureLoader.java`, `RenderEvents.java`, `MeshBufferManager.java`, `FramebufferEffect.java`, `DrawPipelines.java`, and `MeshDataConsumer.java`.
+- The supplied archives do not provide a complete Fabric project definition, a verified mod entrypoint, or the complete metadata/mixin configuration.
+- The current working environment contains no original Prestige client JAR or compiled `.class` payload to use as bytecode-level evidence. The TSV recovery data is useful metadata, but it is not a substitute for the missing class bytecode.
+
+## Required recovery input
+The highest-value missing input is the exact original Prestige client JAR that these source archives were recovered from (or a matching, complete compiled class directory). It is needed to reconstruct obfuscated/dynamic helper behavior and repair decompiler-damaged methods against actual bytecode instead of guessing. A different client JAR is not a safe substitute.
 
 ## Next engineering steps
-1. Reconstruct the missing recovery helper implementations from the supplied mapping/key-recovery data.
-2. Repair the structurally damaged renderlib sources.
-3. Restore Fabric metadata, entrypoint, mixin configuration, and version-specific dependencies.
-4. Run the full Gradle build on GitHub Actions and inspect the resulting JAR.
-5. Verify the JAR by launching Minecraft 1.21.11 with the matching Fabric Loader/API.
+1. Obtain the matching original Prestige JAR or complete compiled class files.
+2. Reconstruct `SourceSupport` and `RecoveryNames` from bytecode and recovery metadata.
+3. Repair the eight damaged renderlib files using bytecode/source evidence.
+4. Restore Fabric metadata, entrypoint, mixin configuration, and version-specific dependencies.
+5. Run the full Gradle build on GitHub Actions, inspect the JAR, and launch-test it on Minecraft 1.21.11 with the matching Fabric Loader/API.
 
 ## Build integrity
-No working JAR has been produced yet. Do not treat a placeholder/stub JAR as a completed client.
+No working JAR has been produced. No placeholder/stub JAR has been generated or presented as a completed client.
