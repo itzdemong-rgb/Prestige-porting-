@@ -52,3 +52,26 @@ This file is **not** the missing original compiled Prestige client binary needed
 **Security handling:** do not install this JAR, its certificate, or its DLL; do not run it on a normal machine. No payload was executed. The bundled certificate/private-key and process-injection functionality make this a high-risk loader package. These observations are static-analysis findings, not a complete malware verdict.
 
 **Recovery impact:** this upload does not resolve the missing `SourceSupport` / `RecoveryNames` implementations or the eight damaged renderlib files. It is not used as a replacement source. The previously supplied six archives remain the only source inputs currently accepted for the recovery branch.
+
+
+## Original JAR inspection (2026-11-02)
+The uploaded `PrestigeClient.jar` was inspected statically; it was not executed. SHA-256:
+`ee3bfa3a0cdc83e57afc4c08470d5ea97257ef5b7c3d04184b407b1fab15fa15`
+
+Its `fabric.mod.json` identifies it as `prestige4`, version `4.0`, description `offline loader`, with entrypoint `dev.prestige4.PrestigeMod`. It contains 342 class files, primarily loader/server and bundled third-party library classes. It is not the missing original Prestige client JAR matching the 542 recovered source files.
+
+Static class inspection found code paths that:
+- install a bundled self-signed mitmproxy CA into Windows Root and Java cacerts trust stores;
+- edit the Windows hosts file for `api.prestigeclient.vip`;
+- start local CRL and TLS replay servers on loopback;
+- create an elevated logon scheduled task named `PrestigeServer`;
+- use JNA/kernel32 APIs including `OpenProcess`, `VirtualAllocEx`, `WriteProcessMemory`, and `CreateRemoteThread`;
+- extract and load a bundled Windows DLL.
+
+The archive also contains `assets/prestige4/flows.zip` with captured API request/response traffic. The recorded `modDownloadNew` response is an 18,143,072-byte opaque payload advertised as `prestige.jar`; its bytes do not begin with ZIP/JAR magic and are not directly usable as a JAR. The uploaded loader does not provide the missing recovered client source/helper classes needed to compile the current reconstruction.
+
+Bundled CA certificate subject/issuer: `CN=mitmproxy, O=mitmproxy`, self-signed, valid 2026-09-05 through 2036-09-02. A PKCS#12 file contains an encrypted private-key bag. Do not install these certificates or execute the loader/DLL.
+
+Security note: these are high-risk behaviours established by static code/constant-pool inspection, not a complete malware verdict. Nothing was executed, no certificate was installed, and no network request was made.
+
+Audit report generated locally: `PRESTIGE_JAR_STATIC_AUDIT.txt` (the full report is available in the ChatGPT conversation). The actual matching client JAR or compiled client classes are still required for bytecode-backed source recovery.
